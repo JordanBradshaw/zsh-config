@@ -11,12 +11,14 @@
 #   done
 # fi
 
-for _rc in "$0:A:h/conf.d/*.zsh"; do
-  # Source non-tilde files.
-  if [[ $_rc:t != '~'* ]]; then
-    source "$_rc"
-  fi
-done
+if [[ -d "$0:A:h/conf.d" ]]; then
+  for _rc in $0:A:h/conf.d/*.zsh; do
+    # Source non-tilde files.
+    if [[ $_rc:t != '~'* ]]; then
+      source "$_rc"
+    fi
+  done
+fi
 
 # --- Completions ---
 # if [[ -d "$0:A:h/completions" ]]; then
