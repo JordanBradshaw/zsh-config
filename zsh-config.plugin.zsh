@@ -5,11 +5,11 @@
 # [[ -f "$0:A:h/env/aliases.zsh" ]] && source "$0:A:h/env/aliases.zsh"
 
 # --- Functions ---
-if [[ -d "$0:A:h/functions" ]]; then
-  for f in $0:A:h/functions/*.zsh; do
-    source "$f"
-  done
-fi
+# if [[ -d "$0:A:h/functions" ]]; then
+#   for f in $0:A:h/functions/*.zsh; do
+#     source "$f"
+#   done
+# fi
 
 for _rc in "$0:A:h/conf.d/*.zsh"; do
   # Source non-tilde files.
