@@ -242,9 +242,11 @@ fi | fzf --ansi --layout=reverse-list --no-sort --height=50% --delimiter=: \
 
 
 ##? envdiff - compare current env to a clean login shell
-function envdiff() {
-  diff <(env | sort) <(zsh -lic 'env' | sort) | less
+envdiff() {
+  diff -u --color=always =(env | sort) =(zsh -lic 'env' | sort) | less -R
 }
+
+
 
 
 function listallparameters() {
