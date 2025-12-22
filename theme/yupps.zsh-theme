@@ -11,6 +11,10 @@
 #  ±  ➦ ✘ ⚡ ⚙
 # configure `time` format
 TIMEFMT=$'\nreal\t%E\nuser\t%U\nsys\t%S\ncpu\t%P'
+ZSH_THEME_GIT_PROMPT_PREFIX=''
+ZSH_THEME_GIT_PROMPT_SUFFIX=''
+ZSH_THEME_GIT_PROMPT_DIRTY=''
+ZSH_THEME_GIT_PROMPT_CLEAN=''
 
 configure_prompt() {
     prompt_symbol=🍤🐟
@@ -20,7 +24,20 @@ configure_prompt() {
             PROMPT=$'%F{%(#.blue.#dfafff)}┌──${debian_chroot:+($debian_chroot)─}${VIRTUAL_ENV:+($(basename $VIRTUAL_ENV))─}(%B%F{%(#.red.blue)}%n'$prompt_symbol$'%m%b%F{%(#.blue.#dfafff)})-[%B%F{reset}%(6~.%-1~/…/%4~.%5~)%b%F{%(#.blue.#dfafff)}]\n└─%B%(#.%F{red}#.%F{blue}$)%b%F{reset} '
             # PROMPT=$'%F{%(#.blue.dfafff)}┌──${debian_chroot:+($debian_chroot)─}${VIRTUAL_ENV:+($(basename $VIRTUAL_ENV))─}(%B%F{%(#.red.blue)}%n'$prompt_symbol$'%m%b%F{%(#.blue.dfafff)})-[%B%F{reset}%(6~.%-1~/…/%4~.%5~)%b%F{%(#.blue.green)}]\n└─%B%(#.%F{red}#.%F{blue}$)%b%F{reset} '
             # Right-side prompt with exit codes and background processes
-            #RPROMPT=[%B%F{reset}%(%t)%b%F{%(#.blue.green)}]
+            # RPROMPT=[%B%F{reset}%(%t)%b%F{%(#.blue.green)}]
+            # ${$(git_prompt_info):+$($'%F{%(#.blue.#dfafff)}[%B%F{reset}$(git_prompt_info)%b%F{%(#.blue.#dfafff)}]')}
+            # RPROMPT='${$(git_prompt_info):+%F{cyan}$(git_prompt_info)%f}'
+            RPROMPT='$(gi=$(git_prompt_info); [[ -n $gi ]] && print -nr -- "%F{%(#.blue.#dfafff)}[%B%F{reset}${gi}%b%F{%(#.blue.#dfafff)}]")'
+
+            # RPROMPT=$'{ gi=$(git_prompt_info); [[ -n $gi ]] && print -nr -- "%F{%(#.blue.#dfafff)}[%B%F{reset}${gi}%b%F{%(#.blue.#dfafff)}]" }'
+            # RPROMPT=$'%F{%(#.blue.#dfafff)}[%B%F{reset}$(git_prompt_info)%b%F{%(#.blue.#dfafff)}]'
+            # RPROMPT=$'${$(git_prompt_info):+%F{cyan}$(git_prompt_info)%f}%F{240}%*%f'
+
+            # RPROMPT='%F{cyan}$(git_prompt_info)%f'
+
+            # RPROMPT='$(git_prompt_info)'
+            # RPROMPT='${vcs_info_msg_0_:+%F{cyan}${vcs_info_msg_0_}%f}'
+
             #RPROMPT=$'%(?.. %? %F{red}%B⨯%b%F{reset})%(1j. %j %F{yellow}%B⚙%b%F{reset}.)'
             ;;
         oneline)
