@@ -47,7 +47,7 @@ function cdf() {
 
 function ff() {
   local file
-  file=$(fzf --preview 'bat --style=numbers --color=always {}' --height=40%) && ${EDITOR:-nvim} "$file"
+  file=$(fzf --preview 'batcat --style=numbers --color=always {}' --height=40%) && ${EDITOR:-nvim} "$file"
 }
 
 function bak(){
