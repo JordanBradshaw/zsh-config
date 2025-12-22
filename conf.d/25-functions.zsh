@@ -1,48 +1,10 @@
 #!/bin/zsh
-##? lspath - list all directories leading up to a filename; this is useful to see if some permissions are blocking access to a file.
-function lspath () {
-    emulate -L zsh
-    local pathlist
-    if [[ "${1}" = "${1##/}" ]]; then
-        pathlist=(/ ${(s:/:)PWD} ${(s:/:)1})
-    else
-        pathlist=(/ ${(s:/:)1})
-    fi
-    local allpaths=()
-    local filepath=${pathlist[0]}
-    shift pathlist
-    for i in ${pathlist[@]}; do
-        allpaths=(${allpaths[@]} ${filepath})
-        filepath="${filepath%/}/$i"
-    done
-    allpaths=(${allpaths[@]} ${filepath})
-    ls -ld "${allpaths[@]}"
-    # vim: ft=zsh
-}
-##? lspath - list all open ports depending on command available
-function lsopenports () {
-    emulate -L zsh
-    local pathlist
-    if [[ "${1}" = "${1##/}" ]]; then
-        pathlist=(/ ${(s:/:)PWD} ${(s:/:)1})
-    else
-        pathlist=(/ ${(s:/:)1})
-    fi
-    local allpaths=()
-    local filepath=${pathlist[0]}
-    shift pathlist
-    for i in ${pathlist[@]}; do
-        allpaths=(${allpaths[@]} ${filepath})
-        filepath="${filepath%/}/$i"
-    done
-    allpaths=(${allpaths[@]} ${filepath})
-    ls -ld "${allpaths[@]}"
-    # vim: ft=zsh
-}
 
+##? cdf -- jump to directory of a file
 function cdf() {
-  local dir
-  dir=$(find ${1:-.} -type d 2>/dev/null | fzf +m) && cd "$dir"
+#   local dir
+#   dir=$(find ${1:-.} -type d 2>/dev/null | fzf +m) && cd "$dir"
+  cd -- "${1:h}"
 }
 
 function ff() {
@@ -106,21 +68,6 @@ function substenv() {
     fi
 }
 
-function tailf() {
-    local nl
-    tail -f $2 | while read j; do
-      print -n "$nl$j"
-      nl="\n"
-    done
-}
-##? touchf - makes any dirs recursively and then touches a file if it doesn't exist
-function touchf() {
-    if [[ -n "$1" ]] && [[ ! -f "$1" ]]; then
-      mkdir -p "$1:h" && touch "$1"
-    fi
-
-}
-
 function update_completions() {
   emulate -L zsh; setopt local_options
   : ${__zsh_config_dir:=${ZDOTDIR:-${XDG_CONFIG_HOME:-$HOME/.config}/zsh}}
@@ -158,67 +105,6 @@ function zcompiledir() {
       done
     fi
 
-}
-##? wrap-sudo sudo wrapper which is able to expand aliases and handle noglob/nocorrect builtins
-function wrap-sudo() {
-    # 
-
-    emulate -L zsh
-
-    integer glob=1
-    local -a run
-    run=(command sudo)
-    if [[ ${#} -gt 1 && ${1} = -u ]]; then
-        run+=(${1} ${2})
-        shift; shift
-    fi
-    while (( ${#} )); do
-        case "${1}" in
-            command|exec|-) shift; break ;;
-            nocorrect) shift ;;
-            noglob) glob=0; shift ;;
-            *) break ;;
-        esac
-    done
-    if (( glob )); then
-        ${run} $~==*
-    else
-        ${run} $==*
-    fi
-
-    # vim: ft=zsh
-}
-##? color man without correction suggestions
-function wrap-man() {
-
-
-        emulate -L zsh 
-
-# with new groff we need to explicitly ask for color support
-    local -x MANROFFOPT=-c
-
-    # set originally "bold" as "bold and red"
-    # set originally "underline" as "underline and green"
-
-    # termcap codes
-    # md    start bold
-    # mb    start blink
-    # me    turn off bold, blink and underline
-    # so    start standout (reverse video)
-    # se    stop standout
-    # us    start underline
-    # ue    stop underline
-    local -x LESS_TERMCAP_md=$(echoti bold; echoti setaf 1)
-    local -x LESS_TERMCAP_mb=$(echoti blink)
-    local -x LESS_TERMCAP_me=$(echoti sgr0)
-    local -x LESS_TERMCAP_so=$(echoti smso)
-    local -x LESS_TERMCAP_se=$(echoti rmso)
-    local -x LESS_TERMCAP_us=$(echoti smul; echoti setaf 2)
-    local -x LESS_TERMCAP_ue=$(echoti sgr0)
-
-    nocorrect command man ${@}
-
-    # vim: ft=zsh
 }
 
 ##? cache output of generated compdef
@@ -367,4 +253,13 @@ print -l ${(k)parameters}
 # print -l ${(k)modules}
 # print -l ${(k)options}
 
+}
+
+##? whichall - find all which respects zsh order
+function whichall() {
+    whence -a "$@"
+}
+##? mkdir + cd safely
+function mkcd() {
+    mkdir =p --"$1" && cd -- "$1"
 }
