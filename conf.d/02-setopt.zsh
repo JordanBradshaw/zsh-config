@@ -21,7 +21,7 @@ setopt EXTENDED_HISTORY # save each commands beginning timestamp and the duratio
 setopt HIST_REDUCE_BLANKS # trim multiple insgnificant blanks in history
 setopt HIST_IGNORE_SPACE # don’t store lines starting with space
 setopt EXTENDED_GLOB # treat special characters as part of patterns
-setopt CORRECT_ALL # try to correct the spelling of all arguments in a line
+unsetopt CORRECT_ALL # try to correct the spelling of all arguments in a line
 unsetopt FLOW_CONTROL # disable stupid annoying keys
 setopt MULTIOS # allows multiple input and output redirections
 setopt AUTO_CD # if the command is directory and cannot be executed, perfort cd to this directory
