@@ -5,8 +5,8 @@
 # fi
 
 # Auto-attach tmux in interactive shells (optional)
-if [[ -o interactive ]] && (( $+commands[tmux] )); then
-  if [[ -z $TMUX && -z $VSCODE_GIT_IPC_HANDLE ]]; then
-    tmux new-session -A -s main
-  fi
-fi
+# if [[ -o interactive ]] && (( $+commands[tmux] )); then
+#   if [[ -z $TMUX && -z $VSCODE_GIT_IPC_HANDLE ]]; then
+#     tmux new-session -A -s main
+#   fi
+# fi
