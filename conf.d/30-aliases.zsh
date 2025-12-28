@@ -7,6 +7,11 @@ if (( ${+commands[bat]} )); then
 elif (( ${+commands[batcat]} )); then
     alias bat="batcat"
 fi
+if (( ${+commands[fd]} )); then
+    : # upstream name exists, do nothing
+elif (( ${+commands[fdfind]} )); then
+    alias fd="fdfind"
+fi
 
 
 # lsd
@@ -20,10 +25,10 @@ if (( ${+commands[batcat]} )); then
     alias cat="batcat --paging=never"
 fi
 
-# fd-find (Ubuntu/Debian binary name)
-if (( ${+commands[fdfind]} )); then
-    alias fd="fdfind"
-fi
+# # fd-find (Ubuntu/Debian binary name)
+# if (( ${+commands[fdfind]} )); then
+#     alias fd="fdfind"
+# fi
 
 # ripgrep
 if (( ${+commands[rg]} )); then
