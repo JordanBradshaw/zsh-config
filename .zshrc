@@ -32,3 +32,5 @@ fi
 # done
 # unset _rc
 export ZSH=$(antidote path https://github.com/ohmyzsh/ohmyzsh) 
+
+antidote update -b

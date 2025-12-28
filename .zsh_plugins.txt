@@ -67,7 +67,7 @@ zpm-zsh/autoenv kind:defer
 
 # ─── Custom Theme (optional manual sourcing) ─────────────────────────────────
 # ${ZDOTDIR:-$HOME}/custom/themes/yupps.zsh-theme
-JordanBradshaw/zsh-config kind:zsh
+JordanBradshaw/zsh-config kind:zsh branch:plugin
 # ~/.config/zsh/custom/themes/yupps.zsh-theme kind:zsh
 # Git (put near bottom so it loads after completions)
 ohmyzsh/ohmyzsh path:plugins/git
