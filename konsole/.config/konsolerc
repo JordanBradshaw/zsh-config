@@ -1,7 +1,10 @@
+MenuBar=Disabled
+
 [General]
 ConfigVersion=1
 
 [KonsoleWindow]
+AllowMenuAccelerators=true
 ForceNewTabs=true
 
 [UiSettings]
