@@ -1,2 +1,5 @@
-# Force path arrays to have unique values only
-typeset -U path cdpath fpath manpath
+# Keep Zsh path arrays globally unique while preserving order.
+typeset -gU path
+typeset -gU cdpath
+typeset -gU fpath
+typeset -gU manpath
