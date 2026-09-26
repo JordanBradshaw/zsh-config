@@ -24,7 +24,10 @@ fi
 # Explicit /bin/ls or command ls always bypasses this anyway.
 # -------------------------------------------------------------------
 if (( ${+commands[lsd]} )); then
-    ls() {
+    unalias ls 2>/dev/null
+
+    function ls() {
+        emulate -L zsh
         local arg
 
         for arg in "$@"; do
@@ -65,7 +68,9 @@ fi
 # Fall back when options indicate actual cat semantics are wanted.
 # -------------------------------------------------------------------
 if (( ${+commands[batcat]} )); then
-    cat() {
+    unalias cat 2>/dev/null
+
+    function cat() {
         local arg
 
         for arg in "$@"; do
@@ -108,7 +113,9 @@ fi
 # grep -> ripgrep
 # -------------------------------------------------------------------
 if (( ${+commands[rg]} )); then
-    grep() {
+    unalias grep 2>/dev/null
+
+    function grep() {
         local arg
 
         for arg in "$@"; do
@@ -155,7 +162,9 @@ fi
 # behavior.
 # -------------------------------------------------------------------
 if (( ${+commands[journalctl]} )); then
-    journalctl() {
+    unalias journalctl 2>/dev/null
+
+    function journalctl() {
         local arg
 
         for arg in "$@"; do
@@ -198,7 +207,8 @@ fi
 # Bare `du` gets dust; arguments go to real du.
 # -------------------------------------------------------------------
 if (( ${+commands[dust]} )); then
-    du() {
+    unalias du 2>/dev/null
+    function du() {
         if (( $# == 0 )); then
             command dust
         else
@@ -226,7 +236,8 @@ fi
 # Bare `htop` gets btm; arguments go to actual htop.
 # -------------------------------------------------------------------
 if (( ${+commands[btm]} )); then
-    htop() {
+    unalias htop 2>/dev/null
+    function htop() {
         if (( $# == 0 )); then
             command btm
         elif (( ${+commands[htop]} )); then
