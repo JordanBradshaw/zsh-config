@@ -1,77 +1,238 @@
-if (( ${+commands[man]} )); then
-    alias man=wrap-man
+# -------------------------------------------------------------------
+# man
+# -------------------------------------------------------------------
+if (( ${+commands[man]} )) && (( ${+functions[wrap-man]} )); then
+    alias man="wrap-man"
 fi
 
-if (( ${+commands[bat]} )); then
-    : # upstream name exists, do nothing
-elif (( ${+commands[batcat]} )); then
-    alias bat="batcat"
-fi
+
+# -------------------------------------------------------------------
+# fd -> fdfind
+# This one is safe: same program, Debian/Ubuntu naming difference.
+# -------------------------------------------------------------------
 if (( ${+commands[fd]} )); then
-    : # upstream name exists, do nothing
+    :
 elif (( ${+commands[fdfind]} )); then
     alias fd="fdfind"
 fi
 
 
-# lsd
+# -------------------------------------------------------------------
+# ls -> lsd
+#
+# Fall back to GNU ls for options/scripts that expect GNU semantics.
+# Explicit /bin/ls or command ls always bypasses this anyway.
+# -------------------------------------------------------------------
 if (( ${+commands[lsd]} )); then
-    alias ls="lsd --long --group-dirs first --icon always"
-    alias tree="lsd --tree --depth=4"
+    ls() {
+        local arg
+
+        for arg in "$@"; do
+            case "$arg" in
+                --block-size=*|\
+                --time-style=*|\
+                --quoting-style=*|\
+                --indicator-style=*|\
+                --hide=*|\
+                --ignore=*|\
+                --format=*|\
+                --sort=*|\
+                --color=*|\
+                --dired|\
+                --full-time|\
+                --author|\
+                --context|\
+                --zero)
+                    command /bin/ls "$@"
+                    return
+                    ;;
+            esac
+        done
+
+        command lsd --long --group-dirs first --icon always "$@"
+    }
+
+    tree() {
+        command lsd --tree --depth=4 "$@"
+    }
 fi
 
-# bat (Ubuntu/Debian binary name)
+
+# -------------------------------------------------------------------
+# cat -> batcat
+#
+# For normal "show me this file", use bat.
+# Fall back when options indicate actual cat semantics are wanted.
+# -------------------------------------------------------------------
 if (( ${+commands[batcat]} )); then
-    alias cat="batcat --paging=never"
+    cat() {
+        local arg
+
+        for arg in "$@"; do
+            case "$arg" in
+                -A|-b|-e|-E|-n|-s|-t|-T|-u|-v|\
+                --show-all|\
+                --number-nonblank|\
+                --show-ends|\
+                --number|\
+                --squeeze-blank|\
+                --show-tabs|\
+                --show-nonprinting)
+                    command /bin/cat "$@"
+                    return
+                    ;;
+            esac
+        done
+
+        command batcat --paging=never "$@"
+    }
 fi
+# cat() {
+#     # stdin / pipes -> real cat
+#     if (( $# == 0 )); then
+#         command /bin/cat
+#         return
+#     fi
 
-# # fd-find (Ubuntu/Debian binary name)
-# if (( ${+commands[fdfind]} )); then
-#     alias fd="fdfind"
-# fi
+#     # options -> real cat
+#     if [[ "$1" == -* ]]; then
+#         command /bin/cat "$@"
+#         return
+#     fi
 
-# ripgrep
+#     # ordinary files -> bat
+#     command batcat --paging=never --style=plain "$@"
+# }
+
+# -------------------------------------------------------------------
+# grep -> ripgrep
+# -------------------------------------------------------------------
 if (( ${+commands[rg]} )); then
-    alias grep="rg"
+    grep() {
+        local arg
+
+        for arg in "$@"; do
+            case "$arg" in
+                -*R*|-*E*|-*F*|-*G*|-*P*|\
+                --dereference-recursive|\
+                --extended-regexp|\
+                --fixed-strings|\
+                --basic-regexp|\
+                --perl-regexp|\
+                --include=*|\
+                --exclude=*|\
+                --exclude-dir=*|\
+                --binary-files=*|\
+                --directories=*|\
+                --devices=*)
+                    command /usr/bin/grep "$@"
+                    return
+                    ;;
+            esac
+        done
+
+        command rg "$@"
+    }
 fi
 
-# ip (iproute2)
+
+# -------------------------------------------------------------------
+# ip
+#
+# Same iproute2 command, just enable color.
+# Very low-risk replacement.
+# -------------------------------------------------------------------
 if (( ${+commands[ip]} )); then
     alias ip="ip -c"
 fi
-# if (( ${+commands[ping]} )); then
-#     alias ping="ping -c 5"
-# fi
 
+
+# -------------------------------------------------------------------
 # journalctl
+#
+# Still journalctl, so aliasing is generally safe.
+# Don't force --no-pager if caller explicitly selects a pager/output
+# behavior.
+# -------------------------------------------------------------------
 if (( ${+commands[journalctl]} )); then
-    alias journalctl="journalctl -o short-iso --no-pager"
+    journalctl() {
+        local arg
+
+        for arg in "$@"; do
+            case "$arg" in
+                --no-pager|--pager-end|--output=*|-o)
+                    command journalctl "$@"
+                    return
+                    ;;
+            esac
+        done
+
+        command journalctl -o short-iso --no-pager "$@"
+    }
 fi
 
-# apt (optional, commented out in original)
-# if (( ${+commands[apt]} )); then
-#     alias apt="apt -o=Dpkg::Progress-Fancy=1"
-# fi
 
-# df (human-readable)
-if (( ${+commands[df]} )); then
+# -------------------------------------------------------------------
+# df -> duf
+#
+# duf is NOT a drop-in df replacement. Only use it for bare `df`.
+# Any arguments/options go to real df.
+# -------------------------------------------------------------------
+if (( ${+commands[duf]} )); then
+    df() {
+        if (( $# == 0 )); then
+            command duf
+        else
+            command /bin/df "$@"
+        fi
+    }
+else
     alias df="df -h"
 fi
-if (( ${+commands[duf]} )); then
-    alias df="duf"
-fi
-# du replacement (dust)
+
+
+# -------------------------------------------------------------------
+# du -> dust
+#
+# dust is also NOT command-line compatible with GNU du.
+# Bare `du` gets dust; arguments go to real du.
+# -------------------------------------------------------------------
 if (( ${+commands[dust]} )); then
-    alias du="dust"
+    du() {
+        if (( $# == 0 )); then
+            command dust
+        else
+            command /usr/bin/du "$@"
+        fi
+    }
 fi
 
+
+# -------------------------------------------------------------------
 # tar shortcuts
+# These don't replace tar, so they're inherently safe.
+# -------------------------------------------------------------------
 if (( ${+commands[tar]} )); then
     alias targz="tar -xvzf"
     alias tarbz2="tar -xvjf"
     alias tarxz="tar -xvJf"
 fi
 
+
+# -------------------------------------------------------------------
+# htop -> btm
+#
+# btm is not CLI-compatible with htop.
+# Bare `htop` gets btm; arguments go to actual htop.
+# -------------------------------------------------------------------
 if (( ${+commands[btm]} )); then
-    alias htop="btm"
+    htop() {
+        if (( $# == 0 )); then
+            command btm
+        elif (( ${+commands[htop]} )); then
+            command htop "$@"
+        else
+            command btm "$@"
+        fi
+    }
 fi

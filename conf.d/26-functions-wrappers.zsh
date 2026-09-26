@@ -1,31 +1,40 @@
-##? wrap-sudo sudo wrapper which is able to expand aliases and handle noglob/nocorrect builtins
+##? wrap-sudo sudo wrapper which expands aliases and handles noglob/nocorrect
 function wrap-sudo() {
-    # 
-
     emulate -L zsh
 
     integer glob=1
     local -a run
     run=(command sudo)
-    if [[ ${#} -gt 1 && ${1} = -u ]]; then
-        run+=(${1} ${2})
-        shift; shift
+
+    if (( $# > 1 )) && [[ $1 == -u ]]; then
+        run+=("$1" "$2")
+        shift 2
     fi
-    while (( ${#} )); do
-        case "${1}" in
-            command|exec|-) shift; break ;;
-            nocorrect) shift ;;
-            noglob) glob=0; shift ;;
-            *) break ;;
+
+    while (( $# )); do
+        case $1 in
+            command|exec|-)
+                shift
+                break
+                ;;
+            nocorrect)
+                shift
+                ;;
+            noglob)
+                glob=0
+                shift
+                ;;
+            *)
+                break
+                ;;
         esac
     done
+
     if (( glob )); then
         ${run} $~==*
     else
         ${run} $==*
     fi
-
-    # vim: ft=zsh
 }
 ##? color man without correction suggestions
 function wrap-man() {
