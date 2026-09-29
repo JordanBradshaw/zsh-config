@@ -25,38 +25,6 @@ function bak(){
     done
 }
 
-function post-autosuggestions() {
-    # https://github.com/zsh-users/zsh-autosuggestions
-
-# Set highlight color, default 'fg=8'.
-    ZSH_AUTOSUGGEST_HIGHLIGHT_STYLE='fg=242'
-    # Set key bindings.
-    if [[ -n "$key_info" ]]; then
-      # vi
-      bindkey -M viins "$key_info[Control]F" vi-forward-word
-      bindkey -M viins "$key_info[Control]E" vi-add-eol
-    fi
-
-}
-##? https://github.com/zsh-users/zsh-history-substring-search
-function post-history-substring-search() {
-
-[[ -v terminfo ]] || zmodload zsh/terminfo
-    for keymap in 'emacs' 'viins'; do
-      bindkey -M "$keymap" "$terminfo[kcuu1]" history-substring-search-up
-      bindkey -M "$keymap" "$terminfo[kcud1]" history-substring-search-down
-    done
-    
-    # Vi
-    bindkey -M vicmd "k" history-substring-search-up
-    bindkey -M vicmd "j" history-substring-search-down
-    
-    # Emacs
-    if [[ -n "$key_info" ]]; then
-      bindkey -M emacs "$key_info[Control]P" history-substring-search-up
-      bindkey -M emacs "$key_info[Control]N" history-substring-search-down
-    fi
-}
 ##? substenv - substitutes string parts with environment variables
 function substenv() {
 

@@ -37,9 +37,3 @@ setopt NOTIFY # report status of background jobs immediately
 unsetopt SHORT_LOOPS # disable short loop forms, can be confusing
 unsetopt RM_STAR_SILENT # ask for confirmation when running rm with *
 setopt RM_STAR_WAIT # wait 10 seconds before accepting the rm * confirmation
-
-# Alias hygiene (undo Prezto's `d` alias)
-if (( $+aliases[d] )); then
-  unalias d
-  alias dirh='dirs -v'
-fi
