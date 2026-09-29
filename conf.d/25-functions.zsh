@@ -8,8 +8,9 @@ function cdf() {
 }
 
 function ff() {
-  local file
-  file=$(fzf --preview 'batcat --style=numbers --color=always {}' --height=40%) && ${EDITOR:-nvim} "$file"
+  local file bat=bat
+  (( ${+commands[batcat]} )) && bat=batcat
+  file=$(fzf --preview "$bat --style=numbers --color=always {}" --height=40%) && ${EDITOR:-nvim} "$file"
 }
 
 function bak(){
@@ -60,7 +61,7 @@ function post-history-substring-search() {
 function substenv() {
 
     if (( $# == 0 )); then
-      subenv ZDOTDIR | subenv HOME
+      substenv ZDOTDIR | substenv HOME
     else
       local sedexp="s|${(P)1}|\$$1|g"
       shift
@@ -78,11 +79,12 @@ function update_completions() {
   curl -fsSL -o $destdir/git-completion.bash https://raw.githubusercontent.com/git/git/master/contrib/completion/git-completion.bash
   curl -fsSL -o $destdir/_git https://raw.githubusercontent.com/git/git/master/contrib/completion/git-completion.zsh
 
-  echo "Generating starship completions..."
-  local _starship=$destdir/_starship
-  starship completions zsh >| $_starship
+  if (( ${+commands[starship]} )); then
+    echo "Generating starship completions..."
+    local _starship=$destdir/_starship
+    starship completions zsh >| $_starship
+  fi
 }
-# update_completions "$@"
 
 function zcompiledir() {
     emulate -L zsh; setopt localoptions extendedglob globdots globstarshort nullglob rcquotes
@@ -112,9 +114,10 @@ function compdefcache {
 emulate -L zsh
 
 setopt local_options extended_glob
+zmodload -F zsh/files b:zf_rm b:zf_mkdir
 
-local cache_dir="${XDG_CACHE_HOME}/zsh/fpath"
-local cache_file="${cache_dir}/_${1##/*}"
+local cache_dir="${XDG_CACHE_HOME:-$HOME/.cache}/zsh/fpath"
+local cache_file="${cache_dir}/_${1##*/}"
 
 # revalidate cache every 20 hours
 if [[ -r "${cache_file}" ]] && ! whence ${1} > /dev/null; then
@@ -130,8 +133,6 @@ elif [[ ! -e "${cache_file}" || -n "${cache_file}"(#qN.mh+20) ]]; then
     else
         echo "compdefcache ERROR: $1 is not available in PATH" >&2
     fi
-else
-    # cache hit, do nothing
 fi
 
 # vim: ft=zsh
@@ -141,6 +142,7 @@ function ineachdir() {
     # do something in each subdirectory of current directory
 
 emulate -L zsh
+(( ${+fg} )) || { autoload -Uz colors && colors }
 
 {
     setopt localoptions localtraps
@@ -215,14 +217,17 @@ EOH
 function bag() {
 
 emulate -L zsh
+(( ${+bg} )) || { autoload -Uz colors && colors }
 
 # use bat, if it's available...
 local preview_cmd
-if (( ${+commands[bat]} )); then
-    preview_cmd='bat --style=numbers --color=always --highlight-line=${2} ${1}'
+if (( ${+commands[batcat]} || ${+commands[bat]} )); then
+    local bat=bat
+    (( ${+commands[batcat]} )) && bat=batcat
+    preview_cmd="$bat --style=numbers --color=always --highlight-line={2} {1}"
 else
     # ...otherwise just highlight line with match using sed replace
-    preview_cmd='sed -E "s/(.*'${*}'.*)/'$bg[grey]'\1'$reset_color'/gI;" < ${1}'
+    preview_cmd='sed -E "s/(.*'${*}'.*)/'$bg[grey]'\1'$reset_color'/gI;" < {1}'
 fi
 
 # prefer rg over ag over grep
@@ -263,5 +268,5 @@ function whichall() {
 }
 ##? mkdir + cd safely
 function mkcd() {
-    mkdir =p -- "$1" && cd -- "$1"
+    mkdir -p -- "$1" && cd -- "$1"
 }

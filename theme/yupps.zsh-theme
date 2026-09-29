@@ -17,12 +17,12 @@ ZSH_THEME_GIT_PROMPT_DIRTY=''
 ZSH_THEME_GIT_PROMPT_CLEAN=''
 
 configure_prompt() {
-    prompt_symbol=🍤🐟
+    prompt_symbol="${PROMPT_SYMBOL:-🍤🐟}"
     [[ $EUID -eq 0 ]] && prompt_symbol=💀
     case "$PROMPT_ALTERNATIVE" in
         twoline)
-            PROMPT=$'%F{%(#.blue.#dfafff)}┌──${debian_chroot:+($debian_chroot)─}${VIRTUAL_ENV:+($(basename $VIRTUAL_ENV))─}(%B%F{%(#.red.blue)}%n'$prompt_symbol$'%m%b%F{%(#.blue.#dfafff)})-[%B%F{reset}%(6~.%-1~/…/%4~.%5~)%b%F{%(#.blue.#dfafff)}]\n└─%B%(#.%F{red}#.%F{blue}$)%b%F{reset} '
-            # PROMPT=$'%F{%(#.blue.dfafff)}┌──${debian_chroot:+($debian_chroot)─}${VIRTUAL_ENV:+($(basename $VIRTUAL_ENV))─}(%B%F{%(#.red.blue)}%n'$prompt_symbol$'%m%b%F{%(#.blue.dfafff)})-[%B%F{reset}%(6~.%-1~/…/%4~.%5~)%b%F{%(#.blue.green)}]\n└─%B%(#.%F{red}#.%F{blue}$)%b%F{reset} '
+            PROMPT=$'%F{%(#.blue.#dfafff)}┌──${debian_chroot:+($debian_chroot)─}${VIRTUAL_ENV:+(${VIRTUAL_ENV:t})─}(%B%F{%(#.red.blue)}%n'$prompt_symbol$'%m%b%F{%(#.blue.#dfafff)})-[%B%F{reset}%(6~.%-1~/…/%4~.%5~)%b%F{%(#.blue.#dfafff)}]\n└─%B%(#.%F{red}#.%F{blue}$)%b%F{reset} '
+            # PROMPT=$'%F{%(#.blue.dfafff)}┌──${debian_chroot:+($debian_chroot)─}${VIRTUAL_ENV:+(${VIRTUAL_ENV:t})─}(%B%F{%(#.red.blue)}%n'$prompt_symbol$'%m%b%F{%(#.blue.dfafff)})-[%B%F{reset}%(6~.%-1~/…/%4~.%5~)%b%F{%(#.blue.green)}]\n└─%B%(#.%F{red}#.%F{blue}$)%b%F{reset} '
             # Right-side prompt with exit codes and background processes
             # RPROMPT=[%B%F{reset}%(%t)%b%F{%(#.blue.green)}]
             # ${$(git_prompt_info):+$($'%F{%(#.blue.#dfafff)}[%B%F{reset}$(git_prompt_info)%b%F{%(#.blue.#dfafff)}]')}
@@ -41,11 +41,11 @@ configure_prompt() {
             #RPROMPT=$'%(?.. %? %F{red}%B⨯%b%F{reset})%(1j. %j %F{yellow}%B⚙%b%F{reset}.)'
             ;;
         oneline)
-            PROMPT=$'${debian_chroot:+($debian_chroot)}${VIRTUAL_ENV:+($(basename $VIRTUAL_ENV))}%B%F{%(#.red.blue)}%n@%m%b%F{reset}:%B%F{%(#.blue.green)}%~%b%F{reset}%(#.#.$) '
+            PROMPT=$'${debian_chroot:+($debian_chroot)}${VIRTUAL_ENV:+(${VIRTUAL_ENV:t})}%B%F{%(#.red.blue)}%n@%m%b%F{reset}:%B%F{%(#.blue.green)}%~%b%F{reset}%(#.#.$) '
             RPROMPT=
             ;;
         backtrack)
-            PROMPT=$'${debian_chroot:+($debian_chroot)}${VIRTUAL_ENV:+($(basename $VIRTUAL_ENV))}%B%F{red}%n@%m%b%F{reset}:%B%F{blue}%~%b%F{reset}%(#.#.$) '
+            PROMPT=$'${debian_chroot:+($debian_chroot)}${VIRTUAL_ENV:+(${VIRTUAL_ENV:t})}%B%F{red}%n@%m%b%F{reset}:%B%F{blue}%~%b%F{reset}%(#.#.$) '
             RPROMPT=
             ;;
     esac
@@ -137,21 +137,20 @@ toggle_oneline_prompt(){
     zle reset-prompt
 }
 zle -N toggle_oneline_prompt
-bindkey "^P" toggle_oneline_prompt
+bindkey "^X^P" toggle_oneline_prompt
 
 # If this is an xterm set the title to user@host:dir
 case "$TERM" in
 xterm*|rxvt*|Eterm|aterm|kterm|gnome*|alacritty)
-    TERM_TITLE=$'\e]0;${debian_chroot:+($debian_chroot)}${VIRTUAL_ENV:+($(basename $VIRTUAL_ENV))}%n@%m: %~\a'
+    TERM_TITLE=$'\e]0;${debian_chroot:+($debian_chroot)}${VIRTUAL_ENV:+(${VIRTUAL_ENV:t})}%n@%m: %~\a'
     ;;
 *)
     ;;
 esac
 
-precmd() {
+_yupps_precmd() {
     # Print the previously configured title
     [[ -n "$TERM_TITLE" ]] && print -Pnr -- "$TERM_TITLE"
-    # print -Pnr -- "$TERM_TITLE"
 
     # Print a new line before the prompt, but only if it is not the first line
     if [ "$NEWLINE_BEFORE_PROMPT" = yes ]; then
@@ -162,4 +161,6 @@ precmd() {
         fi
     fi
 }
+autoload -Uz add-zsh-hook
+add-zsh-hook precmd _yupps_precmd
 #set +x

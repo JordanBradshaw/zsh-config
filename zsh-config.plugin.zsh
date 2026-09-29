@@ -18,6 +18,7 @@ if [[ -d "$0:A:h/conf.d" ]]; then
       source "$_rc"
     fi
   done
+  unset _rc
 fi
 
 # --- Completions ---

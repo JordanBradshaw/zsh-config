@@ -1,8 +1,23 @@
 # -------------------------------------------------------------------
+# sudo
+#
+# Trailing space makes zsh alias-expand the word after sudo, so
+# `sudo ip a` becomes `sudo ip -c a`. Function wrappers below (ls, cat,
+# grep, man, ...) are never passed to sudo; it runs the real binaries.
+# -------------------------------------------------------------------
+alias sudo='sudo '
+
+
+# -------------------------------------------------------------------
 # man
+#
+# A function rather than an alias, so `sudo man` still works.
 # -------------------------------------------------------------------
 if (( ${+commands[man]} )) && (( ${+functions[wrap-man]} )); then
-    alias man="wrap-man"
+    unalias man 2>/dev/null
+    function man() {
+        wrap-man "$@"
+    }
 fi
 
 
@@ -46,7 +61,7 @@ if (( ${+commands[lsd]} )); then
                 --author|\
                 --context|\
                 --zero)
-                    command /bin/ls "$@"
+                    command ls "$@"
                     return
                     ;;
             esac
@@ -62,16 +77,17 @@ fi
 
 
 # -------------------------------------------------------------------
-# cat -> batcat
+# cat -> bat (batcat on Debian/Ubuntu)
 #
 # For normal "show me this file", use bat.
 # Fall back when options indicate actual cat semantics are wanted.
 # -------------------------------------------------------------------
-if (( ${+commands[batcat]} )); then
+if (( ${+commands[batcat]} || ${+commands[bat]} )); then
     unalias cat 2>/dev/null
 
     function cat() {
-        local arg
+        local arg bat=bat
+        (( ${+commands[batcat]} )) && bat=batcat
 
         for arg in "$@"; do
             case "$arg" in
@@ -83,56 +99,57 @@ if (( ${+commands[batcat]} )); then
                 --squeeze-blank|\
                 --show-tabs|\
                 --show-nonprinting)
-                    command /bin/cat "$@"
+                    command cat "$@"
                     return
                     ;;
             esac
         done
 
-        command batcat --paging=never "$@"
+        command $bat --paging=never "$@"
     }
 fi
-# cat() {
-#     # stdin / pipes -> real cat
-#     if (( $# == 0 )); then
-#         command /bin/cat
-#         return
-#     fi
 
-#     # options -> real cat
-#     if [[ "$1" == -* ]]; then
-#         command /bin/cat "$@"
-#         return
-#     fi
-
-#     # ordinary files -> bat
-#     command batcat --paging=never --style=plain "$@"
-# }
 
 # -------------------------------------------------------------------
 # grep -> ripgrep
+#
+# rg is only used when every option has the same meaning in both tools
+# (e.g. -r, -h, -L, -s, -E, -I differ). Anything else goes to real grep.
 # -------------------------------------------------------------------
 if (( ${+commands[rg]} )); then
     unalias grep 2>/dev/null
 
     function grep() {
+        emulate -L zsh
+        setopt extended_glob
         local arg
+        integer skip=0
 
         for arg in "$@"; do
+            if (( skip )); then
+                skip=0
+                continue
+            fi
             case "$arg" in
-                -*R*|-*E*|-*F*|-*G*|-*P*|\
-                --dereference-recursive|\
-                --extended-regexp|\
-                --fixed-strings|\
-                --basic-regexp|\
-                --perl-regexp|\
-                --include=*|\
-                --exclude=*|\
-                --exclude-dir=*|\
-                --binary-files=*|\
-                --directories=*|\
-                --devices=*)
-                    command /usr/bin/grep "$@"
+                --)
+                    break
+                    ;;
+                --(ignore-case|invert-match|line-number|count|files-with-matches|word-regexp|line-regexp|only-matching|quiet|with-filename|no-filename|text|fixed-strings|perl-regexp|byte-offset|null))
+                    ;;
+                --(max-count|after-context|before-context|context|regexp|file|color)=*)
+                    ;;
+                --(max-count|after-context|before-context|context|regexp|file))
+                    skip=1
+                    ;;
+                -[ABCm][0-9]##)
+                    ;;
+                -[ivnclwxoqHaFPb]#[ABCmef])
+                    skip=1
+                    ;;
+                -[ivnclwxoqHaFPb]##)
+                    ;;
+                -?*)
+                    command grep "$@"
                     return
                     ;;
             esac
@@ -169,7 +186,7 @@ if (( ${+commands[journalctl]} )); then
 
         for arg in "$@"; do
             case "$arg" in
-                --no-pager|--pager-end|--output=*|-o)
+                --no-pager|--pager-end|--output=*|-o*)
                     command journalctl "$@"
                     return
                     ;;
@@ -188,11 +205,12 @@ fi
 # Any arguments/options go to real df.
 # -------------------------------------------------------------------
 if (( ${+commands[duf]} )); then
-    df() {
+    unalias df 2>/dev/null
+    function df() {
         if (( $# == 0 )); then
             command duf
         else
-            command /bin/df "$@"
+            command df "$@"
         fi
     }
 else
@@ -212,7 +230,7 @@ if (( ${+commands[dust]} )); then
         if (( $# == 0 )); then
             command dust
         else
-            command /usr/bin/du "$@"
+            command du "$@"
         fi
     }
 fi

@@ -1,7 +1,7 @@
 
 function tailf() {
     local nl
-    tail -f $2 | while read j; do
+    tail -f "$1" | while read -r j; do
       print -n "$nl$j"
       nl="\n"
     done

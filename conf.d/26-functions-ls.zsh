@@ -8,7 +8,7 @@ function lspath () {
         pathlist=(/ ${(s:/:)1})
     fi
     local allpaths=()
-    local filepath=${pathlist[0]}
+    local filepath=${pathlist[1]}
     shift pathlist
     for i in ${pathlist[@]}; do
         allpaths=(${allpaths[@]} ${filepath})
