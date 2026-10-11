@@ -18,7 +18,7 @@ load_conf() {
   source $CONF
 }
 
-typeset -g EZA='eza --long --group-directories-first --icons=always --color=always'
+typeset -g EZA='eza --long --group-directories-first --icons=always --color=always --git --smart-group --time-style=long-iso'
 typeset -g LSD='lsd --long --group-dirs first --icon always'
 
 # ---------------------------------------------------------------------------
@@ -42,25 +42,25 @@ test_ls_plain_without_eza_or_lsd() {
 
 test_ls_eza_drops_human_flag() {
   load_conf eza
-  assert_eq "$(ls -lh)" "$EZA"
+  assert_eq "$(ls -lh)" "$EZA ."
 }
 
 test_ls_eza_time_sort() {
   load_conf eza
   # eza's modified sort is oldest first; ls -t is newest first.
-  assert_eq "$(ls -lt)" "$EZA --sort=modified --reverse" "-t"
-  assert_eq "$(ls -ltr)" "$EZA --sort=modified" "-tr"
+  assert_eq "$(ls -lt)" "$EZA --sort=modified --reverse ." "-t"
+  assert_eq "$(ls -ltr)" "$EZA --sort=modified ." "-tr"
 }
 
 test_ls_eza_size_sort() {
   load_conf eza
-  assert_eq "$(ls -S)" "$EZA --sort=size --reverse" "-S"
-  assert_eq "$(ls -Sr)" "$EZA --sort=size" "-Sr"
+  assert_eq "$(ls -S)" "$EZA --sort=size --reverse ." "-S"
+  assert_eq "$(ls -Sr)" "$EZA --sort=size ." "-Sr"
 }
 
 test_ls_eza_reverse_alone() {
   load_conf eza
-  assert_eq "$(ls -r)" "$EZA --reverse"
+  assert_eq "$(ls -r)" "$EZA --reverse ."
 }
 
 test_ls_eza_shared_long_options() {
@@ -88,6 +88,21 @@ test_ls_gnu_only_option_uses_ls() {
   assert_eq "$(ls --time-style=iso)" "ls --time-style=iso"
 }
 
+test_ls_eza_no_git_passes_through() {
+  load_conf eza lsd
+  assert_eq "$(ls --no-git)" "$EZA --no-git ."
+}
+
+test_ll_eza_full_view() {
+  load_conf eza lsd
+  assert_eq "$(ll src)" "$EZA --header --octal-permissions --total-size -a src"
+}
+
+test_ll_without_eza_uses_ls_wrapper() {
+  load_conf lsd
+  assert_eq "$(ll src)" "$LSD -la src"
+}
+
 # ---------------------------------------------------------------------------
 # tree
 # ---------------------------------------------------------------------------
@@ -96,6 +111,23 @@ test_tree_prefers_eza() {
   load_conf eza lsd
   assert_eq "$(tree src)" \
     "eza --tree --level=4 --group-directories-first --icons=always --color=always src"
+}
+
+# eza reads file names from stdin when given none and stdin is not a tty.
+test_ls_eza_bare_does_not_read_stdin() {
+  load_conf eza
+  assert_eq "$(print foo | ls)" "$EZA ."
+}
+
+test_ll_eza_bare_lists_current_dir() {
+  load_conf eza
+  assert_eq "$(print foo | ll)" "$EZA --header --octal-permissions --total-size -a ."
+}
+
+test_tree_eza_bare_lists_current_dir() {
+  load_conf eza
+  assert_eq "$(print foo | tree -a)" \
+    "eza --tree --level=4 --group-directories-first --icons=always --color=always -a ."
 }
 
 test_tree_uses_lsd_without_eza() {
@@ -143,6 +175,54 @@ test_zc_apt_without_nala_uses_tuned_apt() {
 test_zc_apt_leading_option_uses_apt() {
   stub_echo apt nala
   assert_eq "$(PATH=$STUB_BIN $ZC_APT -y install foo)" "apt $APT_OPTS -y install foo"
+}
+
+# ---------------------------------------------------------------------------
+# lazyjournal: settings as flags; ssh hosts stay in the local config.yml
+# ---------------------------------------------------------------------------
+
+typeset -g LJ_BASE='--tail-lines 20000 --update-interval 2 --min-symbols-filter 1 --unit-types service --journal-field SYSLOG_IDENTIFIER --journal-priority debug'
+
+test_lazyjournal_alias_uses_tailspin() {
+  load_conf lazyjournal tspin
+  assert_eq "$(lazyjournal -b 0)" "lazyjournal $LJ_BASE --color-mode tailspin -b 0"
+}
+
+test_lazyjournal_alias_default_color_without_tailspin() {
+  load_conf lazyjournal
+  assert_eq "$(lazyjournal)" "lazyjournal $LJ_BASE --color-mode default"
+}
+
+test_lazyjournal_no_alias_without_lazyjournal() {
+  load_conf
+  (( ! $+aliases[lazyjournal] )) || fail "lazyjournal alias defined"
+}
+
+test_lj_hosts_reads_ssh_config_and_lazyjournal_config() {
+  load_conf lazyjournal
+  source $REPO_DIR/conf.d/50-completion.zsh  # provides _zc_ssh_hosts
+  print -l 'Host nuc' '  User me' 'Host *' >| $HOME/.ssh/config
+  /bin/mkdir -p $HOME/.config/lazyjournal
+  print -l 'settings:' '  colorMode: default' 'ssh:' '  hosts:' \
+    '    - root@172.29.0.8' '    - "admin@box -p 2222"' 'hotkeys:' '  exit: ctrl+c' \
+    >| $HOME/.config/lazyjournal/config.yml
+  local -a reply
+  _zc_lj_hosts
+  assert_eq "${(j:|:)reply}" "nuc|root@172.29.0.8|admin@box -p 2222"
+}
+
+test_lj_host_with_argument() {
+  load_conf lazyjournal
+  assert_eq "$(lj-host 'root@h -p 22' -b 0)" \
+    "lazyjournal $LJ_BASE --color-mode default --ssh root@h -p 22 -b 0"
+}
+
+test_lj_debug_logs_to_state_dir() {
+  load_conf lazyjournal
+  export XDG_STATE_HOME=$SANDBOX/state
+  local out=$(lj-debug -b 0)
+  assert_eq "${${(f)out}[1]}" "lazyjournal $LJ_BASE --color-mode default --logging -b 0"
+  assert_eq "${${(f)out}[2]}" "log: $SANDBOX/state/lazyjournal/lazyjournal.log"
 }
 
 # ---------------------------------------------------------------------------

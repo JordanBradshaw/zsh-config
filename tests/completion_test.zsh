@@ -181,6 +181,12 @@ test_setup_tree_uses_lsd_completion() {
   assert_eq "$_comps[tree]" "_lsd"
 }
 
+test_setup_jfollow_completes_units() {
+  load_conf
+  _zc_completion_setup
+  assert_eq "$_comps[jfollow]" "_zc_units"
+}
+
 test_setup_maps_fdfind_to_fd() {
   stub_cmd fdfind
   stub_comp _fd fd

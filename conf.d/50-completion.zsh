@@ -82,6 +82,14 @@ function _zc_pathremove() {
   compadd -a path
 }
 
+# System and user units, for jfollow.
+function _zc_units() {
+  local -a units
+  units=(${${(f)"$(systemctl list-units --all --plain --no-legend 2>/dev/null;
+                   systemctl --user list-units --all --plain --no-legend 2>/dev/null)"}%% *})
+  _describe -t units unit units
+}
+
 function _zc_completion_setup() {
   emulate -L zsh
   # compinit hasn't run yet; try again next prompt.
@@ -92,6 +100,7 @@ function _zc_completion_setup() {
   compdef _directories mkcd pathappend pathprepend
   compdef _files bak touchf tailf cdf lspath
   compdef _zc_pathremove pathremove
+  compdef _zc_units jfollow
   compdef _precommand ineachdir
   compdef whichall=whence
   if (( ${+functions[tree]} && ${+_comps[eza]} )); then

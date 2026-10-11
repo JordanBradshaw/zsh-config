@@ -46,7 +46,7 @@ function _zc_ls_eza_args() {
     emulate -L zsh
     reply=()
     local arg sort= flag
-    integer reverse=0 i
+    integer reverse=0 i operand=0
 
     while (( $# )); do
         arg=$1
@@ -54,9 +54,10 @@ function _zc_ls_eza_args() {
         case $arg in
             --)
                 reply+=(-- "$@")
+                (( $# )) && operand=1
                 break
                 ;;
-            --(all|almost-all|directory|recursive|inode|dereference|classify|group-directories-first)|--color=*)
+            --(all|almost-all|directory|recursive|inode|dereference|classify|group-directories-first|no-git)|--color=*)
                 reply+=($arg)
                 ;;
             --reverse)
@@ -80,6 +81,7 @@ function _zc_ls_eza_args() {
                 ;;
             *)
                 reply+=($arg)
+                operand=1
                 ;;
         esac
     done
@@ -92,6 +94,8 @@ function _zc_ls_eza_args() {
         *) (( reverse )) && order=(--reverse) ;;
     esac
     reply=($order $reply)
+    # With no file names and stdin not a terminal, eza reads names from stdin.
+    (( operand )) || reply+=(.)
 }
 
 ##? _zc_ls_gnu_only ARGS... - succeed if ARGS use options only GNU ls understands
@@ -122,14 +126,20 @@ function _zc_ls_gnu_only() {
 }
 
 if (( ${+commands[eza]} || ${+commands[lsd]} )); then
-    unalias ls 2>/dev/null
+    unalias ls ll 2>/dev/null
+
+    # --git costs ~0.01 s per listing; `ls --no-git` turns it off once.
+    typeset -ga _zc_eza_ls=(
+        eza --long --group-directories-first --icons=always --color=always
+        --git --smart-group --time-style=long-iso
+    )
 
     function ls() {
         emulate -L zsh
         local -a reply
 
         if (( ${+commands[eza]} )) && _zc_ls_eza_args "$@"; then
-            command eza --long --group-directories-first --icons=always --color=always "${reply[@]}"
+            command $_zc_eza_ls "${reply[@]}"
         elif (( ${+commands[lsd]} )) && ! _zc_ls_gnu_only "$@"; then
             command lsd --long --group-dirs first --icon always "$@"
         else
@@ -137,9 +147,25 @@ if (( ${+commands[eza]} || ${+commands[lsd]} )); then
         fi
     }
 
+    ##? ll [ARGS...] - full listing: hidden files, header, octal permissions, folder sizes
+    function ll() {
+        emulate -L zsh
+        local -a reply
+
+        if (( ${+commands[eza]} )) && _zc_ls_eza_args -a "$@"; then
+            # --total-size walks every subfolder, so it is slow in big trees.
+            command $_zc_eza_ls --header --octal-permissions --total-size "${reply[@]}"
+        else
+            ls -la "$@"
+        fi
+    }
+
     function tree() {
         if (( ${+commands[eza]} )); then
-            command eza --tree --level=4 --group-directories-first --icons=always --color=always "$@"
+            local -a args=("$@")
+            # As in ls: name a directory so eza never reads names from stdin.
+            (( ${args[(I)[^-]*]} )) || args+=(.)
+            command eza --tree --level=4 --group-directories-first --icons=always --color=always "${args[@]}"
         else
             command lsd --tree --depth=4 "$@"
         fi
@@ -314,6 +340,77 @@ fi
 # -------------------------------------------------------------------
 if (( ${+commands[apt]} )); then
     alias apt="${${(%):-%x}:A:h:h}/bin/zc-apt"
+fi
+
+
+# -------------------------------------------------------------------
+# lazyjournal
+#
+# Settings are passed as flags so they follow the repo; the local
+# ~/.config/lazyjournal/config.yml keeps only machine-specific bits
+# (ssh hosts for the F2 switcher, hotkeys). A flag only beats config.yml
+# when it differs from lazyjournal's built-in default, so keep the
+# `settings:` block out of config.yml.
+# -------------------------------------------------------------------
+if (( ${+commands[lazyjournal]} )); then
+    typeset -ga _zc_lj_flags=(
+        --tail-lines 20000
+        --update-interval 2
+        --min-symbols-filter 1
+        --unit-types service
+        --journal-field SYSLOG_IDENTIFIER
+        --journal-priority debug
+        --color-mode ${${commands[tspin]:+tailspin}:-default}
+    )
+    alias lazyjournal='lazyjournal $_zc_lj_flags'
+
+    ##? _zc_lj_hosts - set $reply to hosts from ~/.ssh/config and lazyjournal's ssh.hosts
+    function _zc_lj_hosts() {
+        emulate -L zsh -o extended_glob
+        local cfg=${XDG_CONFIG_HOME:-$HOME/.config}/lazyjournal/config.yml line
+        local -a hosts
+        integer in_ssh=0
+
+        if (( ${+functions[_zc_ssh_hosts]} )); then
+            _zc_ssh_hosts $HOME/.ssh/config
+            hosts=($reply)
+        fi
+        if [[ -r $cfg ]]; then
+            for line in "${(@f)$(<$cfg)}"; do
+                case $line in
+                    ssh:*) in_ssh=1 ;;
+                    [^[:space:]\#]*) in_ssh=0 ;;
+                    [[:space:]]##-[[:space:]]*)
+                        (( in_ssh )) && hosts+=("${${${line#*-[[:space:]]}#\"}%\"}")
+                        ;;
+                esac
+            done
+        fi
+        reply=(${(u)hosts})
+    }
+
+    ##? lj-host [HOST [ARGS...]] - lazyjournal over ssh; pick HOST with fzf when omitted
+    function lj-host() {
+        local host=$1
+        (( $# )) && shift
+        if [[ -z $host ]]; then
+            local -a reply
+            _zc_lj_hosts
+            (( $#reply )) || { print -u2 "lj-host: no hosts in ~/.ssh/config or lazyjournal config"; return 1 }
+            host=$(print -rl -- $reply | fzf --height=40% --reverse --prompt='lazyjournal host> ') || return
+        fi
+        command lazyjournal $_zc_lj_flags --ssh "$host" "$@"
+    }
+
+    ##? lj-debug [ARGS...] - lazyjournal with command logging; the log goes to the state dir
+    function lj-debug() {
+        local dir=${XDG_STATE_HOME:-$HOME/.local/state}/lazyjournal
+        zmodload -F zsh/files b:zf_mkdir
+        zf_mkdir -p $dir
+        # lazyjournal writes lazyjournal.log to the current directory.
+        ( cd $dir && command lazyjournal $_zc_lj_flags --logging "$@" )
+        print -r -- "log: $dir/lazyjournal.log"
+    }
 fi
 
 
