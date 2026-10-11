@@ -94,7 +94,9 @@ function _zc_completion_setup() {
   compdef _zc_pathremove pathremove
   compdef _precommand ineachdir
   compdef whichall=whence
-  if (( ${+functions[tree]} && ${+_comps[lsd]} )); then
+  if (( ${+functions[tree]} && ${+_comps[eza]} )); then
+    compdef tree=eza
+  elif (( ${+functions[tree]} && ${+_comps[lsd]} )); then
     compdef tree=lsd
   fi
 
@@ -211,7 +213,9 @@ fi
 # Files and directories
 zstyle ':fzf-tab:complete:(cat|bat|batcat|less|more|head|tail|nvim|vim|micro|code):*' fzf-preview \
   "if [[ -d \$realpath ]]; then
-     command lsd -1 --color=always -- \$realpath 2>/dev/null || command ls -1 --color=always -- \$realpath
+     command eza -1 --color=always --icons=always -- \$realpath 2>/dev/null ||
+       command lsd -1 --color=always -- \$realpath 2>/dev/null ||
+       command ls -1 --color=always -- \$realpath
    else
      ${_zc_bat:+command $_zc_bat --color=always --style=numbers --line-range=:200 -- \$realpath 2>/dev/null ||} command head -n 200 -- \$realpath
    fi"

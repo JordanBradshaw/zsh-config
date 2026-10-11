@@ -33,45 +33,116 @@ fi
 
 
 # -------------------------------------------------------------------
-# ls -> lsd
+# ls -> eza, else lsd
 #
-# Fall back to GNU ls for options/scripts that expect GNU semantics.
+# eza does not share ls's short flags (-t takes a value, -h is
+# --header), so common ones are translated and anything else goes to
+# lsd, or to GNU ls. lsd in turn hands GNU-only options to GNU ls.
 # Explicit /bin/ls or command ls always bypasses this anyway.
 # -------------------------------------------------------------------
-if (( ${+commands[lsd]} )); then
+
+##? _zc_ls_eza_args ARGS... - set $reply to eza arguments for ls ARGS; fail if eza can't express them
+function _zc_ls_eza_args() {
+    emulate -L zsh
+    reply=()
+    local arg sort= flag
+    integer reverse=0 i
+
+    while (( $# )); do
+        arg=$1
+        shift
+        case $arg in
+            --)
+                reply+=(-- "$@")
+                break
+                ;;
+            --(all|almost-all|directory|recursive|inode|dereference|classify|group-directories-first)|--color=*)
+                reply+=($arg)
+                ;;
+            --reverse)
+                (( reverse ^= 1 ))
+                ;;
+            -[^-]*)
+                for (( i = 2; i <= $#arg; i++ )); do
+                    flag=$arg[i]
+                    case $flag in
+                        [aAdRiF1]) reply+=(-$flag) ;;
+                        [lh]) ;;
+                        r) (( reverse ^= 1 )) ;;
+                        t) sort=time ;;
+                        S) sort=size ;;
+                        *) return 1 ;;
+                    esac
+                done
+                ;;
+            -?*)
+                return 1
+                ;;
+            *)
+                reply+=($arg)
+                ;;
+        esac
+    done
+
+    # ls -t and -S list newest/largest first; eza sorts both ascending.
+    local -a order
+    case $sort in
+        time) (( reverse )) && order=(--sort=modified) || order=(--sort=modified --reverse) ;;
+        size) (( reverse )) && order=(--sort=size) || order=(--sort=size --reverse) ;;
+        *) (( reverse )) && order=(--reverse) ;;
+    esac
+    reply=($order $reply)
+}
+
+##? _zc_ls_gnu_only ARGS... - succeed if ARGS use options only GNU ls understands
+function _zc_ls_gnu_only() {
+    local arg
+    for arg in "$@"; do
+        case "$arg" in
+            --) return 1 ;;
+            --block-size=*|\
+            --time-style=*|\
+            --quoting-style=*|\
+            --indicator-style=*|\
+            --hide=*|\
+            --ignore=*|\
+            --format=*|\
+            --sort=*|\
+            --color=*|\
+            --dired|\
+            --full-time|\
+            --author|\
+            --context|\
+            --zero)
+                return 0
+                ;;
+        esac
+    done
+    return 1
+}
+
+if (( ${+commands[eza]} || ${+commands[lsd]} )); then
     unalias ls 2>/dev/null
 
     function ls() {
         emulate -L zsh
-        local arg
+        local -a reply
 
-        for arg in "$@"; do
-            case "$arg" in
-                --block-size=*|\
-                --time-style=*|\
-                --quoting-style=*|\
-                --indicator-style=*|\
-                --hide=*|\
-                --ignore=*|\
-                --format=*|\
-                --sort=*|\
-                --color=*|\
-                --dired|\
-                --full-time|\
-                --author|\
-                --context|\
-                --zero)
-                    command ls "$@"
-                    return
-                    ;;
-            esac
-        done
-
-        command lsd --long --group-dirs first --icon always "$@"
+        if (( ${+commands[eza]} )) && _zc_ls_eza_args "$@"; then
+            command eza --long --group-directories-first --icons=always --color=always "${reply[@]}"
+        elif (( ${+commands[lsd]} )) && ! _zc_ls_gnu_only "$@"; then
+            command lsd --long --group-dirs first --icon always "$@"
+        else
+            command ls "$@"
+        fi
     }
 
-    tree() {
-        command lsd --tree --depth=4 "$@"
+    function tree() {
+        if (( ${+commands[eza]} )); then
+            command eza --tree --level=4 --group-directories-first --icons=always --color=always "$@"
+        else
+            command lsd --tree --depth=4 "$@"
+        fi
     }
 fi
 
@@ -233,6 +304,16 @@ if (( ${+commands[dust]} )); then
             command du "$@"
         fi
     }
+fi
+
+
+# -------------------------------------------------------------------
+# apt -> nala, else apt with extra options (see bin/zc-apt)
+#
+# An alias to a script rather than a function, so `sudo apt` uses it too.
+# -------------------------------------------------------------------
+if (( ${+commands[apt]} )); then
+    alias apt="${${(%):-%x}:A:h:h}/bin/zc-apt"
 fi
 
 

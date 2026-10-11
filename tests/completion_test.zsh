@@ -6,70 +6,15 @@
 # Each test runs in a subshell with a temporary HOME, cache dir, PATH stubs and
 # fpath stubs, against a real compinit.
 
-emulate -L zsh
-setopt extended_glob
-
 typeset -g REPO_DIR=${0:A:h:h}
 typeset -g CONF=$REPO_DIR/conf.d/50-completion.zsh
-typeset -gi PASS=0 FAIL=0
-
-# ---------------------------------------------------------------------------
-# Helpers (used inside test subshells)
-# ---------------------------------------------------------------------------
-
-fail() {
-  print -u2 "    $*"
-  exit 1
-}
-
-assert_eq() {
-  [[ $1 == $2 ]] || fail "${3:-assert_eq}: expected [$2], got [$1]"
-}
-
-# stub_cmd NAME [BODY]: create an executable in $STUB_BIN.
-stub_cmd() {
-  print -r -- "#!/bin/sh
-${2:-exit 0}" >| $STUB_BIN/$1
-  chmod +x $STUB_BIN/$1
-}
-
-# stub_comp NAME COMMANDS...: create a completion function in $STUB_FPATH.
-stub_comp() {
-  local name=$1; shift
-  print -r -- "#compdef $*
-return 0" >| $STUB_FPATH/$name
-}
-
-sandbox() {
-  SANDBOX=$(mktemp -d)
-  export HOME=$SANDBOX/home XDG_CACHE_HOME=$SANDBOX/cache
-  STUB_BIN=$SANDBOX/bin STUB_FPATH=$SANDBOX/fpath
-  mkdir -p $HOME/.ssh $XDG_CACHE_HOME $STUB_BIN $STUB_FPATH
-  path=($STUB_BIN /usr/bin /bin)
-  fpath=($STUB_FPATH $fpath)
-}
+source $REPO_DIR/tests/lib.zsh
 
 load_conf() {
   rehash
   autoload -Uz compinit
   compinit -D -i
   source $CONF
-}
-
-run_test() {
-  local name=$1
-  (
-    sandbox
-    trap 'rm -rf $SANDBOX' EXIT
-    $name
-  )
-  if (( $? == 0 )); then
-    (( PASS++ ))
-    print "  ok   $name"
-  else
-    (( FAIL++ ))
-    print "  FAIL $name"
-  fi
 }
 
 # ---------------------------------------------------------------------------
@@ -218,10 +163,20 @@ test_setup_registers_repo_functions() {
   assert_eq "$_comps[whichall]" "$_comps[whence]" whichall
 }
 
+test_setup_tree_prefers_eza_completion() {
+  stub_comp _eza eza
+  stub_comp _lsd lsd
+  function tree() { : }
+  load_conf
+  _zc_completion_setup
+  assert_eq "$_comps[tree]" "_eza"
+}
+
 test_setup_tree_uses_lsd_completion() {
   stub_comp _lsd lsd
   function tree() { : }
   load_conf
+  unset '_comps[eza]'  # the host's eza completion may be on fpath
   _zc_completion_setup
   assert_eq "$_comps[tree]" "_lsd"
 }
@@ -333,6 +288,27 @@ test_git_diff_preview_without_preview_columns() {
   [[ $out == *two* ]] || fail "diff missing: $out"
 }
 
+dir_preview() {
+  local v realpath=$SANDBOX
+  zstyle -s ':fzf-tab:complete:cat:argument-rest' fzf-preview v
+  eval $v
+}
+
+test_dir_preview_prefers_eza() {
+  stub_echo eza lsd
+  load_conf
+  local out=$(dir_preview)
+  [[ $out == eza\ * ]] || fail "expected eza, got: $out"
+}
+
+test_dir_preview_falls_back_to_lsd() {
+  stub_echo lsd
+  load_conf
+  path=($STUB_BIN)
+  local out=$(dir_preview)
+  [[ $out == lsd\ * ]] || fail "expected lsd, got: $out"
+}
+
 command_preview() {
   local v word=$1
   zstyle -s ':fzf-tab:complete:-command-:' fzf-preview v
@@ -357,9 +333,4 @@ test_command_preview_falls_back_without_tldr_page() {
 
 # ---------------------------------------------------------------------------
 
-for t in ${(ok)functions[(I)test_*]}; do
-  run_test $t
-done
-
-print "\n$PASS passed, $FAIL failed"
-(( FAIL == 0 ))
+run_all
