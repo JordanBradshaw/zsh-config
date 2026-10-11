@@ -27,6 +27,13 @@ function _zc_bind_keys() {
   bindkey -M viins '^F' vi-forward-word
   bindkey -M viins '^E' vi-add-eol
 
+  # atuin: Ctrl-R searches history; Up stays history-substring-search
+  if (( ${+widgets[atuin-search]} )); then
+    bindkey -M emacs '^R' atuin-search
+    bindkey -M viins '^R' atuin-search-viins
+    bindkey -M vicmd '^R' atuin-search-vicmd
+  fi
+
   # yupps theme: toggle one/two line prompt
   if (( ${+widgets[toggle_oneline_prompt]} )); then
     bindkey -M emacs '^X^P' toggle_oneline_prompt
