@@ -119,6 +119,7 @@ function _zc_completion_setup() {
   local -a cmd
   for gen in \
     'lazygit completion zsh' \
+    'chezmoi completion zsh' \
     'sake completion zsh' \
     'depot completion zsh' \
     'opencode --completions zsh' \
