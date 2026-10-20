@@ -91,16 +91,16 @@ function journalctl() {
     if (( ${+commands[tspin]} )); then
         command "${cmd[@]}" "${args[@]}" | command tspin
         pipe_status=("${pipestatus[@]}")
-        (( pipe_status[1] )) && return pipe_status[1]
-        return pipe_status[2]
+        (( pipe_status[1] )) && return ${pipe_status[1]}
+        return ${pipe_status[2]}
     fi
 
     if (( ${+commands[bat]} )); then
         command "${cmd[@]}" "${args[@]}" |
             command bat --style=plain --paging=never --color=always --language=log
         pipe_status=("${pipestatus[@]}")
-        (( pipe_status[1] )) && return pipe_status[1]
-        return pipe_status[2]
+        (( pipe_status[1] )) && return ${pipe_status[1]}
+        return ${pipe_status[2]}
     fi
 
     command "${cmd[@]}" "${args[@]}"
