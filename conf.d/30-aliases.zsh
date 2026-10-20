@@ -269,33 +269,6 @@ fi
 
 
 # -------------------------------------------------------------------
-# journalctl
-#
-# Still journalctl, so aliasing is generally safe.
-# Don't force --no-pager if caller explicitly selects a pager/output
-# behavior.
-# -------------------------------------------------------------------
-if (( ${+commands[journalctl]} )); then
-    unalias journalctl 2>/dev/null
-
-    function journalctl() {
-        local arg
-
-        for arg in "$@"; do
-            case "$arg" in
-                --no-pager|--pager-end|--output=*|-o*)
-                    command journalctl "$@"
-                    return
-                    ;;
-            esac
-        done
-
-        command journalctl -o short-iso --no-pager "$@"
-    }
-fi
-
-
-# -------------------------------------------------------------------
 # df -> duf
 #
 # duf is NOT a drop-in df replacement. Only use it for bare `df`.

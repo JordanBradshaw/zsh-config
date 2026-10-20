@@ -5,18 +5,124 @@
 # Logs
 # -------------------------------------------------------------------
 
+##? journalctl [ARGS...] - journalctl with tspin/bat color and safe privilege handling
+unalias journalctl 2>/dev/null
+function journalctl() {
+    emulate -L zsh
+
+    if (( ! ${+commands[journalctl]} )); then
+        print -u2 "journalctl: command not found"
+        return 127
+    fi
+
+    local -a args cmd pipe_status
+    local arg group
+    local -i explicit_output=0 user_journal=0 informational=0 passthrough=0 parsing_options=1
+    local -i journal_access=0
+
+    for arg in "$@"; do
+        if (( parsing_options )) && [[ $arg == -- ]]; then
+            parsing_options=0
+            continue
+        fi
+
+        (( parsing_options )) || continue
+        case $arg in
+            --user)
+                user_journal=1
+                ;;
+            -h|--help|--version)
+                informational=1
+                ;;
+            -o|--output|-o?*|--output=*)
+                explicit_output=1
+                ;;
+            --disk-usage|--verify|--verify-key|--sync|--flush|--rotate|\
+            --relinquish-var|--smart-relinquish-var|--setup-keys|--vacuum-*)
+                passthrough=1
+                ;;
+        esac
+    done
+
+    # Help and version information never need elevated access.
+    if (( informational )); then
+        command journalctl "$@"
+        return
+    fi
+
+    # systemd grants full journal access to these groups on common distros.
+    # Check at invocation time so a newly opened login shell picks up changes.
+    if (( EUID != 0 && ! user_journal && ${+commands[id]} )); then
+        for group in ${(s: :)$(command id -nG 2>/dev/null)}; do
+            if [[ $group == systemd-journal || $group == adm || $group == wheel ]]; then
+                journal_access=1
+                break
+            fi
+        done
+    fi
+
+    if (( user_journal || EUID == 0 || journal_access )); then
+        cmd=(journalctl)
+    elif (( ${+commands[sudo]} )); then
+        cmd=(sudo journalctl)
+    else
+        print -u2 "journalctl: sudo is required to read the system journal"
+        return 127
+    fi
+
+    # Maintenance and verification output is not a stream of log records.
+    if (( passthrough )); then
+        command "${cmd[@]}" "$@" --no-pager
+        return
+    fi
+
+    args=("$@")
+    (( explicit_output )) || args+=(--output=short-iso-precise)
+    # Keep this last: even a caller-supplied pager option cannot start a
+    # privileged pager whose shell escapes would run as root.
+    args+=(--no-pager)
+
+    # Preserve machine-readable formats and non-interactive output.
+    if (( explicit_output )) || [[ ! -t 1 ]] || [[ -n ${NO_COLOR:-} ]]; then
+        command "${cmd[@]}" "${args[@]}"
+        return
+    fi
+
+    if (( ${+commands[tspin]} )); then
+        command "${cmd[@]}" "${args[@]}" | command tspin
+        pipe_status=("${pipestatus[@]}")
+        (( pipe_status[1] )) && return pipe_status[1]
+        return pipe_status[2]
+    fi
+
+    if (( ${+commands[bat]} )); then
+        command "${cmd[@]}" "${args[@]}" |
+            command bat --style=plain --paging=never --color=always --language=log
+        pipe_status=("${pipestatus[@]}")
+        (( pipe_status[1] )) && return pipe_status[1]
+        return pipe_status[2]
+    fi
+
+    command "${cmd[@]}" "${args[@]}"
+}
+
+##? sj [JOURNALCTL_ARGS...] - compatibility shorthand for the journalctl wrapper
+function sj() {
+    journalctl "$@"
+}
+
 ##? jerr [SINCE] - journal errors (err and worse) for this boot, or since SINCE (e.g. 1 hour ago)
 function jerr() {
     if (( $# )); then
-        command journalctl --no-pager -o short-iso -p err --since "$*"
+        journalctl -p err --since "$*"
     else
-        command journalctl --no-pager -o short-iso -p err -b
+        journalctl -p err -b
     fi
 }
 
 ##? jboot [N] - journal errors from boot N (default -1, the previous boot)
 function jboot() {
-    command journalctl --no-pager -o short-iso -p err -b "${1:--1}"
+    journalctl -p err -b "${1:--1}"
 }
 
 ##? jfollow UNIT - follow a unit's journal
@@ -25,7 +131,7 @@ function jfollow() {
         print -u2 "usage: jfollow UNIT"
         return 2
     fi
-    command journalctl -o short-iso -f -u "$1"
+    journalctl -f -u "$1"
 }
 
 ##? failed - failed systemd units, system and user
@@ -38,7 +144,7 @@ function failed() {
 
 ##? kmsg - kernel warnings and errors for this boot
 function kmsg() {
-    command journalctl --no-pager -o short-iso -k -b -p warning
+    journalctl -k -b -p warning
 }
 
 # -------------------------------------------------------------------
