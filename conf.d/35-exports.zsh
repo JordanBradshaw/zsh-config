@@ -53,3 +53,5 @@ if (( ${+commands[fzf]} )); then
 fi
 
 unset _zc_bat
+
+export SSH_ASKPASS_REQUIRE=never

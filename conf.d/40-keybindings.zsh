@@ -5,6 +5,17 @@
 
 ZSH_AUTOSUGGEST_HIGHLIGHT_STYLE='fg=242'
 
+# Shift+Enter: add a line to the command without running it. In normal mode
+# the cursor sits on a character, so the break goes after that character.
+function _zc_insert_newline() {
+  if [[ $KEYMAP == vicmd && -n $RBUFFER ]]; then
+    LBUFFER+=${RBUFFER[1]}
+    RBUFFER=${RBUFFER[2,-1]}
+  fi
+  LBUFFER+=$'\n'
+}
+zle -N _zc_insert_newline
+
 function _zc_bind_keys() {
   [[ -v terminfo ]] || zmodload zsh/terminfo
 
@@ -26,6 +37,13 @@ function _zc_bind_keys() {
   # zsh-autosuggestions: ^F accepts a word, ^E accepts the whole suggestion
   bindkey -M viins '^F' vi-forward-word
   bindkey -M viins '^E' vi-add-eol
+
+  # Shift+Enter in Konsole and Yakuake sends ESC O M. Unbound, vi mode reads
+  # it as ESC, O (open a line above) and a literal M.
+  local km
+  for km in emacs viins vicmd; do
+    bindkey -M $km '^[OM' _zc_insert_newline
+  done
 
   # atuin: Ctrl-R searches history; Up stays history-substring-search
   if (( ${+widgets[atuin-search]} )); then
