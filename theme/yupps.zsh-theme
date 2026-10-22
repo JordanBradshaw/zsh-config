@@ -21,7 +21,9 @@ configure_prompt() {
     [[ $EUID -eq 0 ]] && prompt_symbol=💀
     case "$PROMPT_ALTERNATIVE" in
         twoline)
-            PROMPT=$'%F{%(#.blue.#dfafff)}┌──${debian_chroot:+($debian_chroot)─}${VIRTUAL_ENV:+(${VIRTUAL_ENV:t})─}(%B%F{%(#.red.blue)}%n'$prompt_symbol$'%m%b%F{%(#.blue.#dfafff)})-[%B%F{reset}%(6~.%-1~/…/%4~.%5~)%b%F{%(#.blue.#dfafff)}]\n└─%B%(#.%F{red}#.%F{blue}$)%b%F{reset} '
+            # The bottom line sets its own color: zshrinkwrap prints the top
+            # line itself, and zle draws the rest from reset attributes.
+            PROMPT=$'%F{%(#.blue.#dfafff)}┌──${debian_chroot:+($debian_chroot)─}${VIRTUAL_ENV:+(${VIRTUAL_ENV:t})─}(%B%F{%(#.red.blue)}%n'$prompt_symbol$'%m%b%F{%(#.blue.#dfafff)})-[%B%F{reset}%(6~.%-1~/…/%4~.%5~)%b%F{%(#.blue.#dfafff)}]\n%F{%(#.blue.#dfafff)}└─%B%(#.%F{red}#.%F{blue}$)%b%F{reset} '
             # PROMPT=$'%F{%(#.blue.dfafff)}┌──${debian_chroot:+($debian_chroot)─}${VIRTUAL_ENV:+(${VIRTUAL_ENV:t})─}(%B%F{%(#.red.blue)}%n'$prompt_symbol$'%m%b%F{%(#.blue.dfafff)})-[%B%F{reset}%(6~.%-1~/…/%4~.%5~)%b%F{%(#.blue.green)}]\n└─%B%(#.%F{red}#.%F{blue}$)%b%F{reset} '
             # Right-side prompt with exit codes and background processes
             # RPROMPT=[%B%F{reset}%(%t)%b%F{%(#.blue.green)}]
