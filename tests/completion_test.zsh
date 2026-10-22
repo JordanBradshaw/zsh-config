@@ -187,6 +187,23 @@ test_setup_jfollow_completes_units() {
   assert_eq "$_comps[jfollow]" "_zc_units"
 }
 
+test_setup_sj_uses_journalctl_completion() {
+  stub_comp _journalctl journalctl
+  load_conf
+  _zc_completion_setup
+  assert_eq "$_comps[sj]" "$_comps[journalctl]"
+}
+
+# zsh-bin on a host without zsh (zssh bundles) has no _journalctl: systemd
+# ships it only alongside a system zsh.
+test_setup_skips_sj_without_journalctl_completion() {
+  load_conf
+  unset '_comps[journalctl]'
+  _zc_completion_setup 2>$SANDBOX/err
+  assert_eq "$(<$SANDBOX/err)" "" stderr
+  assert_eq "${+_comps[sj]}" 0
+}
+
 test_setup_maps_fdfind_to_fd() {
   stub_cmd fdfind
   stub_comp _fd fd
