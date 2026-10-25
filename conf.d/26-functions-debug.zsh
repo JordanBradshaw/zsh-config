@@ -5,8 +5,8 @@
 # Logs
 # -------------------------------------------------------------------
 
-##? journalctl [ARGS...] - journalctl with tspin/bat color and safe privilege handling
 unalias journalctl 2>/dev/null
+##? journalctl [ARGS...] - journalctl with tspin/bat color and safe privilege handling
 function journalctl() {
     emulate -L zsh
 

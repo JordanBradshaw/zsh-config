@@ -1,3 +1,4 @@
+unalias ls 2>/dev/null
 ##? lspath - list all directories leading up to a filename; this is useful to see if some permissions are blocking access to a file.
 function lspath () {
     emulate -L zsh
@@ -15,7 +16,7 @@ function lspath () {
         filepath="${filepath%/}/$i"
     done
     allpaths=(${allpaths[@]} ${filepath})
-    ls -ld "${allpaths[@]}"
+    ls -ldU -- "${allpaths[@]}"
     # vim: ft=zsh
 }
 

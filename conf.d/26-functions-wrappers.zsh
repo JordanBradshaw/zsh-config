@@ -1,4 +1,4 @@
-##? wrap-sudo sudo wrapper which expands aliases and handles noglob/nocorrect
+##? wrap-sudo [-u USER] CMD [ARGS...] - sudo wrapper which expands aliases and handles noglob/nocorrect
 ##? usage: alias sudo='noglob wrap-sudo '  (not enabled by default, see 30-aliases.zsh)
 function wrap-sudo() {
     emulate -L zsh
@@ -40,7 +40,7 @@ function wrap-sudo() {
 }
 (( ${+functions[compdef]} )) && compdef _sudo wrap-sudo
 
-##? color man without correction suggestions
+##? wrap-man [ARGS...] - coloured man without spelling-correction prompts
 function wrap-man() {
     emulate -L zsh
 

@@ -72,6 +72,7 @@ function _zc_ls_eza_args() {
                         r) (( reverse ^= 1 )) ;;
                         t) sort=time ;;
                         S) sort=size ;;
+                        U) sort=none ;;
                         *) return 1 ;;
                     esac
                 done
@@ -91,6 +92,7 @@ function _zc_ls_eza_args() {
     case $sort in
         time) (( reverse )) && order=(--sort=modified) || order=(--sort=modified --reverse) ;;
         size) (( reverse )) && order=(--sort=size) || order=(--sort=size --reverse) ;;
+        none) order=(--sort=none) ;;
         *) (( reverse )) && order=(--reverse) ;;
     esac
     reply=($order $reply)

@@ -101,6 +101,7 @@ function _zc_completion_setup() {
   compdef _files bak touchf tailf cdf lspath
   compdef _zc_pathremove pathremove
   compdef _zc_units jfollow
+  compdef _zhelp zhelp
   # systemd ships _journalctl only next to a system zsh; zssh bundles lack it.
   (( ${+_comps[journalctl]} )) && compdef sj=journalctl
   compdef _precommand ineachdir
